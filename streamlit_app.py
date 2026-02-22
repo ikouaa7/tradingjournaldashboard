@@ -6,8 +6,8 @@ import calendar
 # =============================
 # SUPABASE CONNECTIE
 # =============================
-SUPABASE_URL = st.secrets["https://oumnzclsvfeuxqdapppc.supabase.co"]
-SUPABASE_KEY = st.secrets["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91bW56Y2xzdmZldXhxZGFwcHBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MTE4MTksImV4cCI6MjA4NzI4NzgxOX0._mz5-fwV4YvFnGQVIDIWFzMJdE-zS8kBLOfMoDgD8GA"]
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_ANON_KEY"]
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # =============================
