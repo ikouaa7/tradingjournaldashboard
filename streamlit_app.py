@@ -91,7 +91,7 @@ def logout_button():
             st.session_state.pop("edit_date", None)
             st.rerun()
     with col2:
-        st.caption("Je data is per account (Supabase).")
+        
 
 
 # =========================
