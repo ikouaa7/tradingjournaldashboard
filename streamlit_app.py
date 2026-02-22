@@ -58,7 +58,7 @@ def save_trade(trade_date, pnl, trades):
         "trades": int(trades)
     }
 
-    res = supabase.table("daily_trades").upsert(data).execute()
+    res = supabase.table("daily_trades").insert(data).execute()
 
     if res.data:
         st.success("Opgeslagen ✅")
