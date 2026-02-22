@@ -3,22 +3,22 @@ from supabase import create_client
 from datetime import date
 import calendar
 
-# =====================
-# SUPABASE
-# =====================
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_ANON_KEY"]
+# =============================
+# SUPABASE CONNECTIE
+# =============================
+SUPABASE_URL = st.secrets["https://oumnzclsvfeuxqdapppc.supabase.co"]
+SUPABASE_KEY = st.secrets["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91bW56Y2xzdmZldXhxZGFwcHBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MTE4MTksImV4cCI6MjA4NzI4NzgxOX0._mz5-fwV4YvFnGQVIDIWFzMJdE-zS8kBLOfMoDgD8GA"]
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# =====================
+# =============================
 # SESSION
-# =====================
+# =============================
 if "user" not in st.session_state:
     st.session_state.user = None
 
-# =====================
+# =============================
 # AUTH
-# =====================
+# =============================
 def sign_up(email, password):
     try:
         supabase.auth.sign_up({"email": email, "password": password})
@@ -40,42 +40,24 @@ def logout():
     st.session_state.user = None
     st.rerun()
 
-# =====================
-# =====================
-# SAVE TRADE (WORKING)
-# =====================
+# =============================
+# SAVE TRADE
+# =============================
 def save_trade(trade_date, pnl, trades):
     if st.session_state.user is None:
         st.error("Niet ingelogd")
         return
 
     user_id = st.session_state.user.id
-    date_str = trade_date.isoformat()
-
-    # check of record bestaat
-    existing = supabase.table("daily_trades") \
-        .select("id") \
-        .eq("user_id", user_id) \
-        .eq("date", date_str) \
-        .execute()
 
     data = {
         "user_id": user_id,
-        "date": date_str,
+        "date": trade_date.isoformat(),
         "pnl": float(pnl),
         "trades": int(trades)
     }
 
-    if existing.data:
-        res = supabase.table("daily_trades") \
-            .update(data) \
-            .eq("user_id", user_id) \
-            .eq("date", date_str) \
-            .execute()
-    else:
-        res = supabase.table("daily_trades") \
-            .insert(data) \
-            .execute()
+    res = supabase.table("daily_trades").insert(data).execute()
 
     if res.data:
         st.success("Opgeslagen ✅")
@@ -83,9 +65,9 @@ def save_trade(trade_date, pnl, trades):
         st.error("Opslaan mislukt")
         st.write(res)
 
-# =====================
-# LOAD TRADES (WORKING)
-# =====================
+# =============================
+# LOAD TRADES
+# =============================
 def load_trades():
     if st.session_state.user is None:
         return {}
@@ -102,9 +84,9 @@ def load_trades():
 
     return trades
 
-# =====================
+# =============================
 # LOGIN SCREEN
-# =====================
+# =============================
 if st.session_state.user is None:
     st.title("Trading Journal Dashboard")
 
@@ -124,9 +106,9 @@ if st.session_state.user is None:
 
     st.stop()
 
-# =====================
+# =============================
 # APP
-# =====================
+# =============================
 st.title("Trading Journal Dashboard")
 
 if st.button("Uitloggen"):
@@ -151,9 +133,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# =====================
+# =============================
 # CALENDAR
-# =====================
+# =============================
 for month in range(1, 13):
 
     st.markdown(
@@ -174,8 +156,7 @@ for month in range(1, 13):
                 cols[i].write("")
             else:
                 d = date(YEAR, month, day)
-
-                key = str(d)
+                key = d.isoformat()
 
                 if key in trades_data:
                     pnl = trades_data[key]["pnl"]
