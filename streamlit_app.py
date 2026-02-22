@@ -50,22 +50,38 @@ def save_trade(trade_date, pnl, trades):
         return
 
     user_id = st.session_state.user.id
+    date_str = trade_date.isoformat()
+
+    # check of record bestaat
+    existing = supabase.table("daily_trades") \
+        .select("id") \
+        .eq("user_id", user_id) \
+        .eq("date", date_str) \
+        .execute()
 
     data = {
         "user_id": user_id,
-        "date": trade_date.isoformat(),
+        "date": date_str,
         "pnl": float(pnl),
         "trades": int(trades)
     }
 
-    res = supabase.table("daily_trades").insert(data).execute()
+    if existing.data:
+        res = supabase.table("daily_trades") \
+            .update(data) \
+            .eq("user_id", user_id) \
+            .eq("date", date_str) \
+            .execute()
+    else:
+        res = supabase.table("daily_trades") \
+            .insert(data) \
+            .execute()
 
     if res.data:
         st.success("Opgeslagen ✅")
     else:
         st.error("Opslaan mislukt")
         st.write(res)
-
 
 # =====================
 # LOAD TRADES (WORKING)
