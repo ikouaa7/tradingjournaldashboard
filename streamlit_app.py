@@ -84,14 +84,21 @@ def load_trades():
         trades[row["trade_date"]] = row
     return trades
 
-def save_trade(trade_date, pnl, trades_count):
-    supabase.table("daily_trades").upsert({
-        "user_id": user_id,
-        "trade_date": trade_date,
-        "pnl": pnl,
-        "trades": trades_count
-    }).execute()
+def save_trade(date, pnl, trades):
+    user = supabase.auth.get_user()
+    
+    if user is None or user.user is None:
+        st.error("Niet ingelogd")
+        return
+    
+    user_id = user.user.id
 
+    supabase.table("daily_trades").insert({
+        "user_id": user_id,
+        "date": date,
+        "pnl": pnl,
+        "trades": trades
+    }).execute()
 trades_data = load_trades()
 
 # =========================
