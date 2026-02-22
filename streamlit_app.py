@@ -41,41 +41,40 @@ def logout():
     st.rerun()
 
 # =====================
-# SAVE TRADE (FIXED)
+# =====================
+# SAVE TRADE (WORKING)
 # =====================
 def save_trade(trade_date, pnl, trades):
-    user = supabase.auth.get_user()
-
-    if not user or not user.user:
+    if st.session_state.user is None:
         st.error("Niet ingelogd")
         return
 
-    user_id = user.user.id
+    user_id = st.session_state.user.id
 
     data = {
         "user_id": user_id,
-        "date": str(trade_date),
+        "date": trade_date.isoformat(),
         "pnl": float(pnl),
         "trades": int(trades)
     }
 
-    res = supabase.table("daily_trades").insert(data).execute()
+    res = supabase.table("daily_trades").upsert(data).execute()
 
     if res.data:
         st.success("Opgeslagen ✅")
     else:
-        st.error("Opslaan mislukt ❌")
+        st.error("Opslaan mislukt")
         st.write(res)
 
+
 # =====================
-# LOAD TRADES
+# LOAD TRADES (WORKING)
 # =====================
 def load_trades():
-    user = supabase.auth.get_user()
-    if not user or not user.user:
+    if st.session_state.user is None:
         return {}
 
-    user_id = user.user.id
+    user_id = st.session_state.user.id
 
     res = supabase.table("daily_trades").select("*").eq(
         "user_id", user_id
