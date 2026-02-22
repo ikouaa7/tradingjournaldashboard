@@ -1,38 +1,36 @@
 import streamlit as st
 from supabase import create_client
-from datetime import date, datetime
+from datetime import date
 import calendar
 
-# =========================
-# SUPABASE CONNECT
-# =========================
+# =====================
+# SUPABASE
+# =====================
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_ANON_KEY"]
-
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# =========================
-# SESSION STATE
-# =========================
+# =====================
+# SESSION
+# =====================
 if "user" not in st.session_state:
     st.session_state.user = None
 
-# =========================
-# AUTH FUNCTIONS
-# =========================
+# =====================
+# AUTH
+# =====================
 def sign_up(email, password):
     try:
         supabase.auth.sign_up({"email": email, "password": password})
-        st.success("Account aangemaakt! Je kunt nu inloggen.")
-    except Exception as e:
+        st.success("Account aangemaakt")
+    except:
         st.error("Signup mislukt")
 
 def login(email, password):
     try:
-        res = supabase.auth.sign_in_with_password({
-            "email": email,
-            "password": password
-        })
+        res = supabase.auth.sign_in_with_password(
+            {"email": email, "password": password}
+        )
         st.session_state.user = res.user
         st.rerun()
     except:
@@ -42,9 +40,56 @@ def logout():
     st.session_state.user = None
     st.rerun()
 
-# =========================
-# LOGIN UI
-# =========================
+# =====================
+# SAVE TRADE (FIXED)
+# =====================
+def save_trade(trade_date, pnl, trades):
+    user = supabase.auth.get_user()
+
+    if not user or not user.user:
+        st.error("Niet ingelogd")
+        return
+
+    user_id = user.user.id
+
+    data = {
+        "user_id": user_id,
+        "date": str(trade_date),
+        "pnl": float(pnl),
+        "trades": int(trades)
+    }
+
+    res = supabase.table("daily_trades").insert(data).execute()
+
+    if res.data:
+        st.success("Opgeslagen ✅")
+    else:
+        st.error("Opslaan mislukt ❌")
+        st.write(res)
+
+# =====================
+# LOAD TRADES
+# =====================
+def load_trades():
+    user = supabase.auth.get_user()
+    if not user or not user.user:
+        return {}
+
+    user_id = user.user.id
+
+    res = supabase.table("daily_trades").select("*").eq(
+        "user_id", user_id
+    ).execute()
+
+    trades = {}
+    for row in res.data:
+        trades[row["date"]] = row
+
+    return trades
+
+# =====================
+# LOGIN SCREEN
+# =====================
 if st.session_state.user is None:
     st.title("Trading Journal Dashboard")
 
@@ -64,65 +109,17 @@ if st.session_state.user is None:
 
     st.stop()
 
-# =========================
-# USER INFO
-# =========================
-user_id = st.session_state.user.id
-
+# =====================
+# APP
+# =====================
 st.title("Trading Journal Dashboard")
 
 if st.button("Uitloggen"):
     logout()
 
-# =========================
-# LOAD TRADES FROM DB
-# =========================
-def load_trades():
-    data = supabase.table("daily_trades").select("*").eq("user_id", user_id).execute()
-    trades = {}
-    for row in data.data:
-        trades[row["trade_date"]] = row
-    return trades
-
-def save_trade(date, pnl, trades):
-    user = supabase.auth.get_user()
-
-    if not user or not user.user:
-        st.error("Niet ingelogd")
-        return
-
-    user_id = user.user.id
-
-    data = {
-        "user_id": user_id,
-        "date": str(date),
-        "pnl": float(pnl),
-        "trades": int(trades)
-    }
-
-    res = supabase.table("daily_trades").insert(data).execute()
-
-    if res.data:
-        st.success("Opgeslagen ✅")
-    else:
-        st.error("Opslaan mislukt ❌")
-        st.write(res)
-    supabase.table("daily_trades").insert({
-        "user_id": user_id,
-        "date": date,
-        "pnl": pnl,
-        "trades": trades
-    }).execute()
+YEAR = 2026
 trades_data = load_trades()
 
-# =========================
-# YEAR SELECT
-# =========================
-YEAR = 2026
-
-# =========================
-# CALENDAR STYLE
-# =========================
 st.markdown("""
 <style>
 .day-box {
@@ -134,17 +131,20 @@ st.markdown("""
 }
 .win {background-color:#16a34a;}
 .loss {background-color:#dc2626;}
-.neutral {background-color:#1f2937;}
+.neutral {background-color:#374151;}
 .month-title {font-size:22px; margin-top:25px;}
 </style>
 """, unsafe_allow_html=True)
 
-# =========================
-# CALENDAR GRID
-# =========================
+# =====================
+# CALENDAR
+# =====================
 for month in range(1, 13):
 
-    st.markdown(f"<div class='month-title'>{calendar.month_name[month]} {YEAR}</div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='month-title'>{calendar.month_name[month]} {YEAR}</div>",
+        unsafe_allow_html=True
+    )
 
     cal = calendar.monthcalendar(YEAR, month)
 
@@ -158,11 +158,13 @@ for month in range(1, 13):
             if day == 0:
                 cols[i].write("")
             else:
-                d = date(YEAR, month, day).isoformat()
+                d = date(YEAR, month, day)
 
-                if d in trades_data:
-                    pnl = trades_data[d]["pnl"]
-                    trades_count = trades_data[d]["trades"]
+                key = str(d)
+
+                if key in trades_data:
+                    pnl = trades_data[key]["pnl"]
+                    trades_count = trades_data[key]["trades"]
 
                     if pnl > 0:
                         cls = "win"
@@ -181,11 +183,18 @@ for month in range(1, 13):
                         unsafe_allow_html=True
                     )
 
-                # INPUT
+                # EDIT
                 with cols[i].expander("Edit"):
-                    pnl_input = st.number_input("P/L $", key=f"pnl_{d}")
-                    trades_input = st.number_input("Trades", step=1, key=f"tr_{d}")
+                    pnl_input = st.number_input(
+                        "P/L $",
+                        key=f"pnl_{key}"
+                    )
+                    trades_input = st.number_input(
+                        "Trades",
+                        step=1,
+                        key=f"tr_{key}"
+                    )
 
-                    if st.button("Save", key=f"save_{d}"):
+                    if st.button("Save", key=f"save_{key}"):
                         save_trade(d, pnl_input, trades_input)
                         st.rerun()
