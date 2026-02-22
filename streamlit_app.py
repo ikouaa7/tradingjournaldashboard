@@ -86,13 +86,27 @@ def load_trades():
 
 def save_trade(date, pnl, trades):
     user = supabase.auth.get_user()
-    
-    if user is None or user.user is None:
+
+    if not user or not user.user:
         st.error("Niet ingelogd")
         return
-    
+
     user_id = user.user.id
 
+    data = {
+        "user_id": user_id,
+        "date": str(date),
+        "pnl": float(pnl),
+        "trades": int(trades)
+    }
+
+    res = supabase.table("daily_trades").insert(data).execute()
+
+    if res.data:
+        st.success("Opgeslagen ✅")
+    else:
+        st.error("Opslaan mislukt ❌")
+        st.write(res)
     supabase.table("daily_trades").insert({
         "user_id": user_id,
         "date": date,
