@@ -394,7 +394,7 @@ title_col, prev_col, next_col = st.columns([6, 1, 1])
 
 with title_col:
     st.title("Trading Journal Dashboard")
-    st.caption("Alleen 2026. Gebruik Previous/Next om te navigeren.")
+
 
 with prev_col:
     if st.button("Previous month", disabled=(m == 1)):
